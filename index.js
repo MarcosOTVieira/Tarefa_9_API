@@ -15,6 +15,7 @@ function lerNotas() {
   if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, JSON.stringify([], null, 2));
   }
+
   const conteudo = fs.readFileSync(DATA_FILE, 'utf-8');
   return JSON.parse(conteudo);
 }
@@ -30,78 +31,107 @@ app.get('/notas', (req, res) => {
 
 app.get('/notas/:id', (req, res) => {
   const notas = lerNotas();
+
   const nota = notas.find(n => n.id === req.params.id);
 
   if (!nota) {
-    return res.status(404).json({ erro: 'Nota não encontrada.' });
+    return res.status(404).json({
+      erro: 'Nota não encontrada.'
+    });
   }
 
   res.status(200).json(nota);
 });
 
 app.post('/notas', (req, res) => {
-  const { titulo, conteudo } = req.body;
+  const { titulo, conteudo, concluida } = req.body;
 
   if (!titulo || !conteudo) {
-    return res.status(400).json({ erro: 'Os campos "titulo" e "conteudo" são obrigatórios.' });
+    return res.status(400).json({
+      erro: 'Os campos "titulo" e "conteudo" são obrigatórios.'
+    });
   }
 
-  const novas = lerNotas();
+  const notas = lerNotas();
+
   const novaNota = {
     id: uuidv4(),
     titulo,
     conteudo,
+    concluida: concluida ?? false,
     criadoEm: new Date().toISOString(),
-    atualizadoEm: new Date().toISOString(),
+    atualizadoEm: new Date().toISOString()
   };
 
-  novas.push(novaNota);
-  salvarNotas(novas);
+  notas.push(novaNota);
+
+  salvarNotas(notas);
 
   res.status(201).json(novaNota);
 });
 
 app.put('/notas/:id', (req, res) => {
-  const { titulo, conteudo } = req.body;
+  const { titulo, conteudo, concluida } = req.body;
+
   const notas = lerNotas();
+
   const index = notas.findIndex(n => n.id === req.params.id);
 
   if (index === -1) {
-    return res.status(404).json({ erro: 'Nota não encontrada.' });
+    return res.status(404).json({
+      erro: 'Nota não encontrada.'
+    });
   }
 
-  if (!titulo && !conteudo) {
-    return res.status(400).json({ erro: 'Informe ao menos "titulo" ou "conteudo" para atualizar.' });
+  if (
+    titulo === undefined &&
+    conteudo === undefined &&
+    concluida === undefined
+  ) {
+    return res.status(400).json({
+      erro: 'Informe ao menos "titulo", "conteudo" ou "concluida" para atualizar.'
+    });
   }
 
   notas[index] = {
     ...notas[index],
     titulo: titulo ?? notas[index].titulo,
     conteudo: conteudo ?? notas[index].conteudo,
-    atualizadoEm: new Date().toISOString(),
+    concluida: concluida ?? notas[index].concluida,
+    atualizadoEm: new Date().toISOString()
   };
 
   salvarNotas(notas);
+
   res.status(200).json(notas[index]);
 });
 
 app.delete('/notas/:id', (req, res) => {
   const notas = lerNotas();
+
   const index = notas.findIndex(n => n.id === req.params.id);
 
   if (index === -1) {
-    return res.status(404).json({ erro: 'Nota não encontrada.' });
+    return res.status(404).json({
+      erro: 'Nota não encontrada.'
+    });
   }
 
   const removida = notas.splice(index, 1)[0];
+
   salvarNotas(notas);
 
-  res.status(200).json({ mensagem: 'Nota excluída com sucesso.', nota: removida });
+  res.status(200).json({
+    mensagem: 'Nota excluída com sucesso.',
+    nota: removida
+  });
 });
 
-
 app.get('/', (req, res) => {
-  res.status(200).json({ status: 'API de Notas funcionando ✓', versao: '1.0.0' });
+  res.status(200).json({
+    status: 'API de Notas funcionando ✓',
+    versao: '1.0.0'
+  });
 });
 
 app.listen(PORT, () => {
